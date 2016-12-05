@@ -187,7 +187,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Solve the Cracker Barrel Peg game',
         epilog='Valid values of puzzle_name and the corresponding puzzle image follow:\n' +
-               '\n'.join((puzzle_name + ':\n' + str(puzzle) for puzzle_name, puzzle in Puzzle.starting_puzzles.items())),
+               '\n'.join((
+                   puzzle_name + ':\n' + str(puzzle)
+                   for puzzle_name, puzzle in
+                   Puzzle.starting_puzzles.items())),
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
         'puzzle_name',
