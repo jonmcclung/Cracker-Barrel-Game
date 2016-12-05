@@ -6,6 +6,8 @@ from copy import deepcopy
 from numbers import Number
 from typing import Iterable
 
+import sys
+
 Move = namedtuple('Move', 'row column direction')
 
 
@@ -42,33 +44,8 @@ class Puzzle:
     up, down, left, right, up_right, down_left, zero = directions
     directions = directions[:-1]
 
-    def __str__(self):
-        rows = []
-        for row in self.board:
-            rows.append(' '.join(str(int(val)) for val in row))
-        return '\n'.join(rows)
-
-    def __repr__(self):
-        return self.__str__()
-
-    def get(self, move: Move, direction: Direction) -> bool:
-        if move.row + direction.y < 0 or move.column + direction.x < 0:
-            raise IndexError
-        return self.board[move.row + direction.y][move.column + direction.x]
-
-    def set(self, move: Move, direction: Direction, val: bool):
-        if move.row + direction.y < 0 or move.column + direction.x < 0:
-            raise IndexError
-        self.board[move.row + direction.y][move.column + direction.x] = val
-
-    def board_hash(self) -> int:
-        res = 0
-        i = 0
-        for row in self.board:
-            for val in row:
-                res += val << i
-                i += 1
-        return res
+    starting_puzzles = {}
+    _all_moves = []
 
     def __init__(self, board: Iterable[Iterable[bool]] = None, moves: Iterable[Move] = None):
         self.board = board or [
@@ -77,7 +54,12 @@ class Puzzle:
             [True, False, True],
             [True, True],
             [True]]
-        self.moves = moves or self.all_moves()
+        if moves is None:
+            if not Puzzle._all_moves:
+                Puzzle._all_moves = self.all_moves()
+            self.moves = Puzzle._all_moves
+        else:
+            self.moves = moves
         self.solution = []
 
     def solve(self, memory={}) -> bool:
@@ -118,24 +100,104 @@ class Puzzle:
                 for column in range(5 - row):
                     move = Move(row, column, direction)
                     try:
-                        # self.get(move, move.direction)
                         self.get(move, move.direction * 2)
                         res.append(move)
                     except IndexError:
                         pass
         return res
 
+    def __str__(self):
+        rows = []
+        for row in self.board:
+            rows.append(' '.join(str(int(val)) for val in row))
+        return '\n'.join(rows)
 
-def main():
-    solved = Puzzle()
-    display_puzzle = Puzzle()
-    if solved.solve():
+    def __repr__(self):
+        return self.__str__()
+
+    def get(self, move: Move, direction: Direction) -> bool:
+        if move.row + direction.y < 0 or move.column + direction.x < 0:
+            raise IndexError
+        return self.board[move.row + direction.y][move.column + direction.x]
+
+    def set(self, move: Move, direction: Direction, val: bool):
+        if move.row + direction.y < 0 or move.column + direction.x < 0:
+            raise IndexError
+        self.board[move.row + direction.y][move.column + direction.x] = val
+
+    def board_hash(self) -> int:
+        res = 0
+        i = 0
+        for row in self.board:
+            for val in row:
+                res += val << i
+                i += 1
+        return res
+
+    @staticmethod
+    def print_all_starting_puzzles():
+        for puzzle_name, puzzle in Puzzle.starting_puzzles.items():
+            print(puzzle_name, ':\n', puzzle, sep='')
+
+
+class _PuzzleStaticMemberInitialization:
+    Puzzle.starting_puzzles['tip'] = Puzzle([
+        [False, True, True, True, True],
+        [True, True, True, True],
+        [True, True, True],
+        [True, True],
+        [True]])
+
+    Puzzle.starting_puzzles['middle'] = Puzzle([
+        [True, True, True, True, True],
+        [True, False, True, True],
+        [True, True, True],
+        [True, True],
+        [True]])
+
+    Puzzle.starting_puzzles['middle-edge'] = Puzzle([
+        [True, True, False, True, True],
+        [True, True, True, True],
+        [True, True, True],
+        [True, True],
+        [True]])
+
+    Puzzle.starting_puzzles['corner-edge'] = Puzzle([
+        [True, False, True, True, True],
+        [True, True, True, True],
+        [True, True, True],
+        [True, True],
+        [True]])
+
+
+def main(puzzle):
+    display_puzzle = deepcopy(puzzle)
+    if puzzle.solve():
         print('solution:')
         print(display_puzzle)
-        for move in solved.solution:
+        for move in puzzle.solution:
             display_puzzle.hop(move)
             print(move, display_puzzle, sep='\n')
+    else:
+        print('no solution found ):')
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        puzzle_name = sys.argv[1]
+    except IndexError:
+        print('Usage: cracker_barrel puzzle-name, where puzzle-name is one of:')
+        Puzzle.print_all_starting_puzzles()
+        print('Alternatively, you can use the puzzle-name "all" to see solutions for all the puzzles')
+        sys.exit(1)
+    if puzzle_name == 'all':
+        for puzzle_name, puzzle in Puzzle.starting_puzzles.items():
+            print('SOLVING ', puzzle_name, ':', sep='')
+            main(deepcopy(puzzle))
+    else:
+        try:
+            main(deepcopy(Puzzle.starting_puzzles[puzzle_name]))
+        except KeyError:
+            print("That's not a valid name. Valid puzzles are:")
+            Puzzle.print_all_starting_puzzles()
+            sys.exit(1)
