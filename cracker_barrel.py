@@ -1,6 +1,7 @@
 # -*-coding:utf8;-*-
 # qpy:3
 # qpy:console
+import argparse
 from collections import namedtuple, Counter
 from copy import deepcopy
 from numbers import Number
@@ -183,21 +184,21 @@ def main(puzzle):
 
 
 if __name__ == '__main__':
-    try:
-        puzzle_name = sys.argv[1]
-    except IndexError:
-        print('Usage: cracker_barrel puzzle-name, where puzzle-name is one of:')
-        Puzzle.print_all_starting_puzzles()
-        print('Alternatively, you can use the puzzle-name "all" to see solutions for all the puzzles')
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description='Solve the Cracker Barrel Peg game',
+        epilog='Valid values of puzzle_name and the corresponding puzzle image follow:\n' +
+               '\n'.join((puzzle_name + ':\n' + str(puzzle) for puzzle_name, puzzle in Puzzle.starting_puzzles.items())),
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        'puzzle_name',
+        type=str,
+        choices=list(Puzzle.starting_puzzles.keys()) + ['all'])
+
+    puzzle_name = parser.parse_args().puzzle_name
+
     if puzzle_name == 'all':
         for puzzle_name, puzzle in Puzzle.starting_puzzles.items():
             print('SOLVING ', puzzle_name, ':', sep='')
             main(deepcopy(puzzle))
     else:
-        try:
-            main(deepcopy(Puzzle.starting_puzzles[puzzle_name]))
-        except KeyError:
-            print("That's not a valid name. Valid puzzles are:")
-            Puzzle.print_all_starting_puzzles()
-            sys.exit(1)
+        main(deepcopy(Puzzle.starting_puzzles[puzzle_name]))
